@@ -23,11 +23,11 @@ fi
 
 mkdir -p "$DEST"
 
-find "$REPO/skills" -name SKILL.md -not -path '*/node_modules/*' -not -path '*/deprecated/*' -print0 |
-while IFS= read -r -d '' skill_md; do
-  src="$(dirname "$skill_md")"
+link_skill() {
+  local src="$1"
+  local name
   name="$(basename "$src")"
-  target="$DEST/$name"
+  local target="$DEST/$name"
 
   if [ -e "$target" ] && [ ! -L "$target" ]; then
     rm -rf "$target"
@@ -35,4 +35,20 @@ while IFS= read -r -d '' skill_md; do
 
   ln -sfn "$src" "$target"
   echo "linked $name -> $src"
-done
+}
+
+if [ $# -gt 0 ]; then
+  for name in "$@"; do
+    skill_md="$(find "$REPO/skills" -name SKILL.md -not -path '*/node_modules/*' -not -path '*/deprecated/*' | grep -E "/${name}/SKILL\.md$" | head -1)"
+    if [ -z "$skill_md" ]; then
+      echo "warning: skill '$name' not found" >&2
+      continue
+    fi
+    link_skill "$(dirname "$skill_md")"
+  done
+else
+  find "$REPO/skills" -name SKILL.md -not -path '*/node_modules/*' -not -path '*/deprecated/*' -print0 |
+  while IFS= read -r -d '' skill_md; do
+    link_skill "$(dirname "$skill_md")"
+  done
+fi
